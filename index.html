@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voice Assistant — AI Web App</title>
+  <meta name="description" content="Voice Assistant: AI-powered web companion with voice and text chat, informative pages, and responsive layout." />
+  <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0"
+      }
+    }
+  </script>
+  <style>
+    :root{
+      --accent:#2563eb;
+      --bg:#0f172a;
+      --card:#0b1220;
+      --muted:#94a3b8;
+      --glass: rgba(255,255,255,0.03);
+      --radius:14px;
+      --maxw:1100px;
+      color-scheme: dark;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; margin:0; background:linear-gradient(180deg,#071024 0%, #07122a 60%); color:#e6eef8; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale}
+    .container{max-width:var(--maxw);margin:32px auto;padding:0 20px}
+
+    /* Header */
+    header{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo .mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700}
+    nav ul{list-style:none;display:flex;gap:14px;margin:0;padding:0}
+    nav a{color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:10px}
+    nav a.active, nav a:hover{color:#fff;background:var(--glass)}
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .cta{background:linear-gradient(90deg,var(--accent),#7c3aed);padding:8px 12px;border-radius:10px;color:white;text-decoration:none}
+
+    /* Hero */
+    .hero{display:grid;grid-template-columns:1fr 420px;gap:28px;align-items:center;margin:28px 0}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:22px;border-radius:var(--radius);box-shadow:0 6px 24px rgba(2,6,23,0.6)}
+    h1{font-size:34px;margin:0 0 10px}
+    h2{font-size:28px}
+    h3{font-size:20px}
+    p.lead{color:var(--muted);line-height:1.6}
+    .features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+    .feature{background:rgba(255,255,255,0.02);padding:10px;border-radius:10px}
+
+    /* Bot panel */
+    .bot-panel{display:flex;flex-direction:column;height:420px}
+    .messages{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+    .msg{max-width:78%;padding:10px;border-radius:10px; word-wrap: break-word;}
+    .user{align-self:flex-end;background:linear-gradient(90deg,#0ea5e9,#2563eb);color:white}
+    .ai{align-self:flex-start;background:rgba(255,255,255,0.03);color:var(--muted)}
+    .controls{display:flex;gap:8px;margin-top:10px; flex-wrap: wrap;}
+    .controls textarea{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;resize:none}
+    .btn{padding:10px 12px;border-radius:10px;border:none;background:var(--accent);color:white;cursor:pointer}
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    
+    /* Pages */
+    section.page{display:none}
+    section.page.active{display:block}
+
+    /* About / Features content */
+    .content-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .big{font-size:18px;color:var(--muted); line-height: 1.6;}
+    ul.clean{padding-left:18px; line-height: 1.7;}
+
+    footer{margin:28px 0;padding:18px 0;border-top:1px solid rgba(255,255,255,0.03);display:flex;justify-content:space-between;align-items:center}
+    .social{display:flex;gap:10px}
+    .small{font-size:13px;color:var(--muted)}
+
+    /* Responsive */
+    @media (max-width:900px){
+      .hero{grid-template-columns:1fr}
+      .content-grid{grid-template-columns:1fr}
+      .bot-panel{height:360px}
+      nav ul{display:none}
+    }
+  </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <div class="mark">VA</div>
+        <div>
+          <div style="font-weight:700">Voice Assistant</div>
+          <div class="small">AI-powered web companion</div>
+        </div>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#home" data-route="home" class="active">Home</a></li>
+          <li><a href="#about" data-route="about">About</a></li>
+          <li><a href="#features" data-route="features">Features</a></li>
+          <li><a href="#bot" data-route="bot">AI Bot</a></li>
+          <li><a href="#contact" data-route="contact">Contact</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions">
+        <button id="muteBtn" class="btn secondary" title="Toggle sound">🔊</button>
+        <a class="cta" href="#bot" data-route="bot">Start Chat</a>
+      </div>
+    </header>
+
+    <main>
+      <!-- Home Page Content -->
+      <section id="home" class="page active">
+        <div class="hero">
+          <div class="card">
+            <h1>Your Personal AI, Right in the Browser</h1>
+            <p class="lead">This is a lightweight, privacy-focused AI web application that lets you talk or type to an intelligent assistant. Explore the project's features, learn about its open architecture, and try the live chat assistant with seamless voice input and speech output.</p>
+            <div class="features-grid">
+              <div class="feature"><strong>Voice & Text Input</strong><div class="small">Use your microphone for hands-free conversation or type for silent interaction. The choice is yours.</div></div>
+              <div class="feature"><strong>Powered by Gemini</strong><div class="small">Leverages Google's powerful Gemini model for fast, accurate, and context-aware responses.</div></div>
+              <div class="feature"><strong>Fully Responsive</strong><div class="small">Enjoy a consistent and intuitive experience on your desktop, tablet, or mobile device.</div></div>
+              <div class="feature"><strong>Zero Backend Needed</strong><div class="small">Runs entirely in your browser. No server setup, no data collection, just pure client-side AI power.</div></div>
+            </div>
+            <div style="margin-top:16px">
+              <a class="btn" href="#bot" data-route="bot">Try the Bot</a>
+              <a class="btn secondary" style="margin-left:8px" href="#features" data-route="features">Learn More</a>
+            </div>
+          </div>
+          <aside class="card">
+            <h3 style="margin-top:0">Live Demo</h3>
+            <div class="bot-panel">
+              <div class="messages" id="messages" aria-live="polite"></div>
+              <div style="font-size:13px;color:var(--muted);padding-top:6px">Tip: Click the microphone icon and speak, or type a message below.</div>
+              <div class="controls">
+                <textarea id="input" rows="2" placeholder="Ask me anything... (Press Enter to send)"></textarea>
+                <button class="btn secondary" id="micBtn" title="Toggle microphone">🎤</button>
+                <button class="btn" id="sendBtn">Send</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- About Page Content -->
+      <section id="about" class="page">
+        <div class="card">
+          <h2>About The Project</h2>
+          <p class="big">Voice Assistant is a developer-focused project demonstrating how to build an interactive AI companion using only modern, client-side web technologies. The app prioritizes accessibility, modularity, and user privacy. It connects directly to Google's Gemini API, but its simple architecture allows it to be adapted to any large language model endpoint.</p>
+          <div class="content-grid" style="margin-top:24px">
+            <div>
+              <h3>Our Mission</h3>
+              <p class="small">To democratize access to conversational AI by providing a simple, transparent, and extensible interface. We empower students, hobbyists, and developers to experiment with voice-enabled AI without the complexity of backend infrastructure. This project serves as both a functional tool and an educational resource.</p>
+              <h3 style="margin-top:16px">How It Works</h3>
+              <p class="small">The application is a showcase of modern browser capabilities:</p>
+              <ul class="clean small">
+                <li>User speech is captured using the cross-browser <strong>Web Speech API</strong>.</li>
+                <li>The transcribed text is sent directly to the <strong>Google Gemini API</strong> via a `fetch` request.</li>
+                <li>The AI's response is displayed in the chat interface and spoken aloud using the <strong>Web Speech Synthesis API</strong>.</li>
+                <li>A simple vanilla JavaScript router handles page navigation without reloads.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Technology Stack</h3>
+              <p class="small">This application is built with a minimalist philosophy, relying on native browser APIs and a single external library for AI interaction.</p>
+              <ul class="clean small">
+                <li><strong>HTML5 & CSS3:</strong> For structure and modern, responsive styling.</li>
+                <li><strong>Vanilla JavaScript (ESM):</strong> For all client-side logic, ensuring performance and readability.</li>
+                <li><strong>Google GenAI SDK:</strong> For seamless and efficient communication with the Gemini family of models.</li>
+                <li><strong>Web Speech API:</strong> For speech-to-text and text-to-speech functionality.</li>
+                <li><strong>No Frameworks:</strong> To keep the codebase lightweight and easy to understand.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Page Content -->
+       <section id="features" class="page">
+        <div class="card">
+          <h2>Core Features</h2>
+          <p class="big">Packed with modern features, this assistant is designed to be both powerful and easy to use.</p>
+          <div class="content-grid" style="margin-top:24px">
+            <div>
+                <h3>🎙️ Multimodal Input</h3>
+                <p class="small">Switch effortlessly between voice and text. Use the microphone for hands-free queries or type when you need to be discreet. The system is designed to handle both inputs seamlessly.</p>
+            </div>
+            <div>
+                <h3>🔊 Real-time Speech Output</h3>
+                <p class="small">Hear the AI's responses spoken aloud in a natural voice. This feature uses your browser's built-in text-to-speech engine, making the interaction feel more like a real conversation.</p>
+            </div>
+            <div>
+                <h3>⚡ Powered by Google Gemini</h3>
+                <p class="small">Direct integration with the Gemini Flash model ensures you get fast, high-quality, and contextually relevant answers for a wide range of queries, from simple facts to complex reasoning.</p>
+            </div>
+            <div>
+                <h3>📱 Responsive & Mobile-First</h3>
+                <p class="small">The interface is built to look great and function perfectly on any screen size. Large touch targets and a fluid layout provide an excellent experience on phones, tablets, and desktops.</p>
+            </div>
+            <div>
+                <h3>🎨 Themeable CSS</h3>
+                <p class="small">The entire look and feel can be changed in seconds by adjusting the CSS variables at the top of the stylesheet. Customize colors, radius, and more to match your brand.</p>
+            </div>
+            <div>
+                <h3>🛠️ No Build Step Required</h3>
+                <p class="small">Written in standard HTML, CSS, and JavaScript modules. There's no need for complex build tools like Webpack or Vite. Simply open the `index.html` file in your browser to get started.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Bot Page Content -->
+      <section id="bot" class="page">
+        <div class="card">
+          <h2>AI Bot</h2>
+          <p class="small">Engage in a conversation with the AI. This full-featured chat interface maintains conversation history and supports both voice and text input. Your API key is used directly from the browser to communicate with the Gemini API.</p>
+          <h3 style="margin-top:24px;">Things to Try:</h3>
+          <ul class="clean small">
+              <li>"Explain quantum computing in simple terms."</li>
+              <li>"Give me a recipe for chocolate chip cookies."</li>
+              <li>"Write a short poem about space."</li>
+              <li>"What are the main benefits of learning a new language?"</li>
+          </ul>
+          <div class="bot-panel card" style="margin-top:12px">
+            <div class="messages" id="botMessages"></div>
+            <div class="controls" style="margin-top:8px">
+              <textarea id="botInput" rows="2" placeholder="Type a message or press the microphone"></textarea>
+              <button class="btn secondary" id="botMic">🎤</button>
+              <button class="btn" id="botSend">Send</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact Page Content -->
+       <section id="contact" class="page">
+        <div class="card">
+          <h2>Get In Touch</h2>
+          <p class="small">Have feedback, feature requests, or want to collaborate? We'd love to hear from you. Fill out the form below or reach out via one of our social channels.</p>
+          <div class="content-grid" style="margin-top:24px;">
+            <form id="contactForm" style="display:grid;gap:8px;">
+              <input name="name" placeholder="Your name" style="padding:10px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit">
+              <input name="email" placeholder="Email" style="padding:10px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit">
+              <textarea name="message" placeholder="Message" rows="4" style="padding:10px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit"></textarea>
+              <button class="btn" type="submit">Send Message</button>
+            </form>
+            <div>
+              <h3>Other ways to connect</h3>
+              <p class="small">
+                <strong>Email:</strong> <a href="https://mail.google.com/mail/u/0/#inbox?compose=new" target="_blank" style="color:var(--accent)">rc7424828859@gmail.com</a><br/>
+                <strong>GitHub:</strong> For bug reports and contributions, please visit our <a href="https://github.com/issues/assigned" target="_blank" style="color:var(--accent)">repository</a>.
+              </p>
+              <h3 style="margin-top:16px;">Contribute</h3>
+              <p class="small">This is an open-source project. We welcome contributions of all kinds, from documentation improvements to new features. Check out our contributor guidelines on GitHub to get started.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>
+        <div style="font-weight:700">Voice Assistant</div>
+        <div class="small">Made with ❤️  web APIs — 2025</div>
+      </div>
+      <div style="text-align:right">
+        <div class="small">Contact: rahul.choudhary.j8@gmail.com</div>
+        <div class="social" style="margin-top:6px">
+          <a class="small"  href="https://x.com/bgmiError404?t=uYIIZFAsezpH5bN4SzUOKg&s=09" target="_blank">Twitter</a>
+          <a class="small" href="https://github.com/Rahulchoudharygi" target="_blank">Github</a>
+          <a class="small" href="https://www.linkedin.com/in/rahul-rolaniya-8b93ba285/" target="_blank">Linkedin</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <script type="module">
+    import { GoogleGenAI } from "@google/genai";
+
+    const API_KEY = "AIzaSyA4xeAhgX2n174aHREHO4YurY1ITEs6gek";
+
+    // ----- Simple router -----
+    document.querySelectorAll('[data-route]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        const route = el.getAttribute('data-route');
+        navigate(route);
+      });
+    });
+
+    function navigate(route) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById(route);
+      if (target) {
+        target.classList.add('active');
+      } else {
+        document.getElementById('home').classList.add('active');
+      }
+      document.querySelectorAll('nav a').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('data-route') === route);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // ----- UI Elements -----
+    const messagesEl = document.getElementById('messages');
+    const input = document.getElementById('input');
+    const micBtn = document.getElementById('micBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    
+    const botMessages = document.getElementById('botMessages');
+    const botInput = document.getElementById('botInput');
+    const botMic = document.getElementById('botMic');
+    const botSend = document.getElementById('botSend');
+    
+    const contactForm = document.getElementById('contactForm');
+    const muteBtn = document.getElementById('muteBtn');
+
+    // ----- App State -----
+    let ai;
+    let isMuted = false;
+    const homeHistory = [];
+    const botHistory = [];
+
+    // ----- Message Helpers -----
+    function appendMessage(text, who = 'ai', container) {
+      if (!container) return;
+      const el = document.createElement('div');
+      el.className = 'msg ' + (who === 'user' ? 'user' : 'ai');
+      el.textContent = text;
+      container.appendChild(el);
+      container.scrollTop = container.scrollHeight;
+    }
+    
+    // ----- Event Listeners -----
+    sendBtn.addEventListener('click', () => { if (input.value.trim()) sendQuery(input.value.trim(), messagesEl, input, homeHistory); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (input.value.trim()) sendQuery(input.value.trim(), messagesEl, input, homeHistory); } });
+    micBtn.addEventListener('click', toggleMic);
+
+    botSend.addEventListener('click', () => { if (botInput.value.trim()) sendQuery(botInput.value.trim(), botMessages, botInput, botHistory); });
+    botInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (botInput.value.trim()) sendQuery(botInput.value.trim(), botMessages, botInput, botHistory); } });
+    botMic.addEventListener('click', toggleMic);
+
+    contactForm.addEventListener('submit', e => { e.preventDefault(); alert('Thank you! Your message has been recorded (demo).'); e.target.reset(); });
+    muteBtn.addEventListener('click', toggleMute);
+
+    // ----- Voice (Web Speech API) -----
+    let recognizing = false;
+    let recognition = null;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SR();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        recognizing = true;
+        micBtn.textContent = '⏺️';
+        botMic.textContent = '⏺️';
+      };
+      recognition.onend = () => {
+        recognizing = false;
+        micBtn.textContent = '🎤';
+        botMic.textContent = '🎤';
+      };
+
+      recognition.onresult = (evt) => {
+        const transcript = Array.from(evt.results).map(r => r[0].transcript).join('');
+        const activePage = document.querySelector('.page.active').id;
+        if (activePage === 'bot') {
+            botInput.value = transcript;
+            sendQuery(transcript, botMessages, botInput, botHistory);
+        } else {
+            input.value = transcript;
+            sendQuery(transcript, messagesEl, input, homeHistory);
+        }
+      };
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        let errorMsg = `Speech recognition error: ${event.error}.`;
+        if (event.error === 'not-allowed') {
+            errorMsg = 'Microphone access was denied. Please allow microphone access in your browser settings to use voice input.';
+        }
+        appendMessage(errorMsg, 'ai', messagesEl);
+        appendMessage(errorMsg, 'ai', botMessages);
+      };
+    } else {
+      micBtn.disabled = true;
+      micBtn.title = 'Speech recognition not supported';
+      botMic.disabled = true;
+      botMic.title = 'Speech recognition not supported';
+    }
+
+    function toggleMic() {
+      if (!recognition) return;
+      if (recognizing) {
+        recognition.stop();
+      } else {
+        try {
+          recognition.start();
+        } catch (e) {
+          console.error("Mic start error:", e);
+          appendMessage("Could not start microphone. Please check permissions.", 'ai', messagesEl);
+        }
+      }
+    }
+
+    // ----- Text-to-Speech -----
+    function toggleMute() {
+        isMuted = !isMuted;
+        muteBtn.textContent = isMuted ? '🔇' : '🔊';
+        if (isMuted) {
+            window.speechSynthesis.cancel();
+        }
+    }
+
+    function speak(text) {
+      if (!('speechSynthesis' in window) || isMuted) return;
+      const u = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    }
+    
+    // ----- Gemini AI Initialization -----
+    function initializeAi() {
+      try {
+        ai = new GoogleGenAI({ apiKey: API_KEY });
+        const welcomeMessage = 'Hello! I am ready to chat. How can I assist you today?';
+        appendMessage(welcomeMessage, 'ai', messagesEl);
+        appendMessage(welcomeMessage, 'ai', botMessages);
+      } catch (error) {
+        console.error("Gemini Initialization Error:", error);
+        const errorMessage = 'Failed to initialize the AI. The API key might be invalid or missing.';
+        appendMessage(errorMessage, 'ai', messagesEl);
+        appendMessage(errorMessage, 'ai', botMessages);
+      }
+    }
+
+    async function sendQuery(text, container, inputEl, history) {
+      if (!ai) {
+        appendMessage('AI is not initialized. Please check your API key.', 'ai', container);
+        return;
+      }
+      
+      appendMessage(text, 'user', container);
+      if (inputEl) inputEl.value = '';
+      
+      history.push({ role: 'user', parts: [{ text }] });
+
+      const typing = document.createElement('div'); 
+      typing.className = 'msg ai'; 
+      typing.textContent = 'Thinking...';
+      container.appendChild(typing);
+      container.scrollTop = container.scrollHeight;
+
+      try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: history,
+            systemInstruction: 'You are a friendly and helpful voice assistant.',
+        });
+        const aiText = response.text;
+        history.push({ role: 'model', parts: [{ text: aiText }] });
+        
+        typing.remove();
+        appendMessage(aiText, 'ai', container);
+        speak(aiText);
+      } catch (err) {
+        typing.remove();
+        console.error(err);
+        appendMessage('Error connecting to the AI. Please check the console for details and verify your API key.', 'ai', container);
+      }
+    }
+
+    // ----- App Start -----
+    initializeAi();
+  </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
